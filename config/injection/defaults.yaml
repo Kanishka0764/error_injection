@@ -1,0 +1,75 @@
+profiles:
+  all:
+    categories: 
+      - dm_date
+      - date_cross_domain
+      - age_arm
+      - dm_cross_domain
+      - special_purpose
+      - interventions
+      - ae_events
+      - events
+      - findings_individual
+      - findings_chain_1
+      - findings_chain_2
+      - general_obs_1
+      - general_obs_2
+      - relationship
+      - ts_domain
+      - ts_parmcd_req
+      - ts_parmcd_limit
+      - ts_tsval
+      - trial_design
+      - mandatory_domain
+      - mandatory_variable
+      - mandatory_variable_2
+      - custom_split
+      - all_domains_1
+      - all_domains_2
+      - device
+
+  dates:
+    categories: [dm_date, date_cross_domain]
+
+  dm:
+    categories: [dm_date, age_arm, dm_cross_domain]
+
+  findings:
+    categories: [findings_chain_1, findings_chain_2, findings_individual]
+
+  cross_domain:
+    categories: [dm_cross_domain, date_cross_domain]
+
+  ts:
+    categories: [ts_domain, ts_parmcd_req, ts_parmcd_limit, ts_tsval]
+
+  structural:
+    categories: [mandatory_domain, mandatory_variable, mandatory_variable_2,
+                 all_domains_1, all_domains_2]
+
+  death:
+    categories: [ae_events]  # filtered to death rules only at runtime
+
+defaults:
+  rate: 0.05
+  max_errors_per_rule: 50
+  density_cap: 5
+  seed: 42
+  prioritize_rules: true
+
+category_rates:
+  dm_date: 0.10
+  dm_cross_domain: 0.10
+  age_arm: 0.10
+  ae_events: 0.08
+  date_cross_domain: 0.05
+  findings_chain_1: 0.03
+  findings_chain_2: 0.03
+  ts_parmcd_req: 0.50
+  ts_parmcd_limit: 0.50
+  ts_tsval: 0.50
+  mandatory_domain: 1.0
+
+skip_by_default:
+  - SD9999
+  - SD0062
