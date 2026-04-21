@@ -30,6 +30,7 @@ class Config:
         self.profiles = self.data.get("profiles", {})
         self.defaults = self.data.get("defaults", {})
         self.category_rates = self.data.get("category_rates", {})
+        self.category_rules = self.data.get("category_rules", {})
         self.skip_by_default = self.data.get("skip_by_default", [])
 
     def resolve_profile(self, profile_name: str) -> List[str]:
@@ -65,6 +66,18 @@ class Config:
             return self.category_rates.get(category, self.defaults.get("rate", 0.05))
         return self.defaults.get("rate", 0.05)
 
+    def get_rules_for_category(self, category: str) -> List[str]:
+        """
+        Get rule IDs for a specific category from category_rules.
+
+        Args:
+            category: Category name (e.g., 'dm_date', 'age_arm')
+
+        Returns:
+            List of rule IDs for this category
+        """
+        return self.category_rules.get(category, [])
+
     def resolve_rules(
         self,
         profile: Optional[str] = None,
@@ -74,6 +87,7 @@ class Config:
     ) -> tuple[List[str], List[str]]:
         """
         Resolve rule list from profile → categories → explicit rules.
+        Uses category_rules from defaults.yaml as source of truth.
 
         Args:
             profile: Profile name ('all', 'dates', etc.)
@@ -87,9 +101,16 @@ class Config:
         profile = profile or "all"
         categories = categories or self.resolve_profile(profile)
 
-        # For now, these are placeholders - actual categories→rules mapping
-        # is in catalog.py
-        selected = rules or []
+        # Get rules from category_rules for each category
+        if rules:
+            selected = rules
+        else:
+            selected = []
+            for category in categories:
+                selected.extend(self.get_rules_for_category(category))
+            # Remove duplicates while preserving order
+            selected = list(dict.fromkeys(selected))
+        
         excluded = exclude_rules or self.skip_by_default
 
         return selected, excluded
@@ -100,5 +121,6 @@ class Config:
             "profiles": self.profiles,
             "defaults": self.defaults,
             "category_rates": self.category_rates,
+            "category_rules": self.category_rules,
             "skip_by_default": self.skip_by_default,
         }

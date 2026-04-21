@@ -77,6 +77,7 @@ class InjectionEngine:
             rules=rules,
             exclude_rules=exclude_rules,
             domains=domains,
+            category_rules=self.config.category_rules,
         )
 
         active_rules, skipped = self._filter_by_available_domains(resolved_rules, datasets)
@@ -159,6 +160,9 @@ class InjectionEngine:
         subject_density: Dict[str, int] = {}
         injected_rule_ids = set()
         error_counter = 1
+        # Track which (USUBJID, column) pairs have already been injected
+        # Maps (usubjid, column) -> rule_id to prevent duplicate column injections
+        injected_columns: Dict[Tuple[str, str], str] = {}
 
         for spec in active_rules:
             target_domains = self._resolve_target_domains(spec, datasets)
@@ -200,6 +204,33 @@ class InjectionEngine:
 
                 for row_idx in selected_rows:
                     call_rows = row_idx if self._is_row_level_primitive(spec.primitive) else 0
+                    
+                    # Get USUBJID for this row to check column conflicts
+                    usubjid = self._get_usubjid(df, row_idx)
+                    
+                    # Extract columns that will be modified by this rule
+                    columns_to_inject = self._get_columns_from_params(
+                        spec.primitive,
+                        spec.params,
+                        datasets,
+                        domain,
+                    )
+                    
+                    # Check if any of these columns have already been injected for this USUBJID
+                    conflicts = self._check_column_conflicts(
+                        usubjid,
+                        columns_to_inject,
+                        injected_columns,
+                    )
+                    
+                    if conflicts:
+                        # Skip this injection - column(s) already injected for this subject
+                        manifest.add_skipped_rule(
+                            spec.rule_id,
+                            f"Column conflict for {usubjid}: {conflicts} already injected"
+                        )
+                        continue
+                    
                     records = self._apply_rule_once(
                         datasets=datasets,
                         domain=domain,
@@ -219,6 +250,10 @@ class InjectionEngine:
                         error_counter += 1
                         manifest.add_error(record)
                         injected_rule_ids.add(spec.rule_id)
+                        
+                        # Record the injected columns for this USUBJID
+                        for col in record.variables_modified.keys():
+                            injected_columns[(record.usubjid, col)] = spec.rule_id
 
         self._rederive_dependent_fields(datasets, manifest)
         warnings = self._self_validate(datasets, manifest)
@@ -535,6 +570,100 @@ class InjectionEngine:
             "cross_domain_orphan",
         }
         return primitive_name not in non_row_level
+
+    @staticmethod
+    def _get_usubjid(df: pd.DataFrame, row_idx: int) -> str:
+        """Extract USUBJID from row for tracking purposes."""
+        if row_idx < 0 or row_idx >= len(df):
+            return ""
+        if "USUBJID" in df.columns:
+            return str(df.iloc[row_idx]["USUBJID"])
+        return ""
+
+    @staticmethod
+    def _get_columns_from_params(
+        primitive_name: str,
+        params: Dict[str, Any],
+        datasets: Dict[str, pd.DataFrame],
+        domain: str,
+    ) -> List[str]:
+        """
+        Extract column names from rule parameters that will be modified by the primitive.
+        
+        Args:
+            primitive_name: Name of the primitive (e.g., "blank_field")
+            params: Parameter dict from RuleSpec
+            datasets: Available datasets
+            domain: Target domain
+            
+        Returns:
+            List of column names that will be modified
+        """
+        columns = []
+        
+        # These parameters directly specify columns to modify
+        column_params = ["field", "column_name", "source_field", "target_field"]
+        for param in column_params:
+            if param in params:
+                col = str(params[param])
+                if col and col not in {"--", ""}:
+                    columns.append(col)
+        
+        # Handle range-based primitives that modify two columns
+        for start_col_param, end_col_param in [
+            ("start_field", "end_field"),
+            ("date_field", "dy_field"),
+            ("col_a", "col_b"),
+        ]:
+            if start_col_param in params:
+                col = str(params[start_col_param])
+                if col and col not in {"--", ""}:
+                    columns.append(col)
+            if end_col_param in params:
+                col = str(params[end_col_param])
+                if col and col not in {"--", ""}:
+                    columns.append(col)
+        
+        # Handle key_fields for duplicate_record
+        if "key_fields" in params:
+            key_fields = params["key_fields"]
+            if isinstance(key_fields, list):
+                columns.extend([str(k) for k in key_fields if k])
+            elif isinstance(key_fields, str):
+                columns.extend([k.strip() for k in key_fields.split(",") if k.strip()])
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_columns = []
+        for col in columns:
+            if col not in seen:
+                seen.add(col)
+                unique_columns.append(col)
+        
+        return unique_columns
+
+    @staticmethod
+    def _check_column_conflicts(
+        usubjid: str,
+        columns_to_inject: List[str],
+        injected_columns: Dict[Tuple[str, str], str],
+    ) -> List[str]:
+        """
+        Check if any of the columns to be injected have already been injected for this USUBJID.
+        
+        Args:
+            usubjid: Subject ID
+            columns_to_inject: List of column names to be modified
+            injected_columns: Tracking dict mapping (usubjid, column) -> rule_id
+            
+        Returns:
+            List of conflicting columns (empty if no conflicts)
+        """
+        conflicts = []
+        for col in columns_to_inject:
+            if (usubjid, col) in injected_columns:
+                conflicts.append(f"{col}(by {injected_columns[(usubjid, col)]})")
+        return conflicts
 
     def _rederive_dependent_fields(
         self,

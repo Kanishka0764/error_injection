@@ -197,7 +197,7 @@ def blank_field(
         category="",
         primitive="blank_field",
         domain=df.attrs.get("domain", ""),
-        usubjid=df[df.columns[0]].iloc[row_idx] if len(df.columns) > 0 else "",
+        usubjid=df[df.columns[2]].iloc[row_idx] if len(df.columns) > 0 else "",
         row_index=row_idx,
         variables_modified={field: {"original": original, "injected": ""}},
     )
@@ -237,7 +237,7 @@ def populate_forbidden(
         category="",
         primitive="populate_forbidden",
         domain=df.attrs.get("domain", ""),
-        usubjid=df[df.columns[0]].iloc[row_idx] if len(df.columns) > 0 else "",
+        usubjid=df[df.columns[2]].iloc[row_idx] if len(df.columns) > 0 else "",
         row_index=row_idx,
         variables_modified={field: {"original": original, "injected": value}},
     )
@@ -277,7 +277,7 @@ def set_invalid_value(
         category="",
         primitive="set_invalid_value",
         domain=df.attrs.get("domain", ""),
-        usubjid=df[df.columns[0]].iloc[row_idx] if len(df.columns) > 0 else "",
+        usubjid=df[df.columns[2]].iloc[row_idx] if len(df.columns) > 0 else "",
         row_index=row_idx,
         variables_modified={field: {"original": original, "injected": value}},
     )
@@ -323,7 +323,7 @@ def mismatch_pair(
         category="",
         primitive="mismatch_pair",
         domain=df.attrs.get("domain", ""),
-        usubjid=df[df.columns[0]].iloc[row_idx] if len(df.columns) > 0 else "",
+        usubjid=df[df.columns[2]].iloc[row_idx] if len(df.columns) > 0 else "",
         row_index=row_idx,
         variables_modified={
             field_a: {"original": original_a, "injected": original_a},
@@ -354,16 +354,35 @@ def invert_date_order(
     Returns:
         MutationRecord
     """
+    # DEBUG: Print what we're looking for
+    print(f"Looking for fields: start_field='{start_field}', end_field='{end_field}'")
+    print(f"Available columns in df: {list(df.columns)}")
+    print(f"start_field in df.columns: {start_field in df.columns}")
+    print(f"end_field in df.columns: {end_field in df.columns}")
     original_start = str(df[start_field].iloc[row_idx]) if start_field in df.columns else ""
     original_end = str(df[end_field].iloc[row_idx]) if end_field in df.columns else ""
+    print(f"Original values: {start_field}='{original_start}', {end_field}='{original_end}'")
 
     # Try to parse as dates
     end_date = _parse_iso_date(original_end)
+    print(f"Parsed {end_field} as date: {end_date}")
     if end_date:
         # Set start to end + random days (1-30)
-        offset_days = rng.integers(1, 31)
-        new_start = end_date + timedelta(days=offset_days)
-        injected_start = _format_iso_date(new_start)
+        offset_days = int(rng.integers(1, 31))  # Convert numpy.int64 to Python int
+        print(f"Offset days to add: {offset_days}")
+        print(f"offset_days type: {type(offset_days)}, value: {offset_days}")
+        print(f"end_date type: {type(end_date)}, value: {end_date}")
+        try:
+            new_start = end_date + timedelta(days=offset_days)
+            print("Successfully created new_start")
+            print(f"New start date : {new_start}")
+            injected_start = _format_iso_date(new_start)
+            print(f"inj: {injected_start}")
+        except Exception as e:
+            print(f"ERROR in date calculation: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            injected_start = original_start
     else:
         # Try numeric inversion
         try:
@@ -382,7 +401,7 @@ def invert_date_order(
         category="",
         primitive="invert_date_order",
         domain=df.attrs.get("domain", ""),
-        usubjid=df[df.columns[0]].iloc[row_idx] if len(df.columns) > 0 else "",
+        usubjid=df[df.columns[2]].iloc[row_idx] if len(df.columns) > 0 else "",
         row_index=row_idx,
         variables_modified={
             start_field: {"original": original_start, "injected": injected_start}
@@ -436,7 +455,7 @@ def wrong_derived(
         category="",
         primitive="wrong_derived",
         domain=df.attrs.get("domain", ""),
-        usubjid=df[df.columns[0]].iloc[row_idx] if len(df.columns) > 0 else "",
+        usubjid=df[df.columns[2]].iloc[row_idx] if len(df.columns) > 0 else "",
         row_index=row_idx,
         variables_modified={field: {"original": original, "injected": injected}},
     )
@@ -484,7 +503,7 @@ def truncate_with_derived(
         category="",
         primitive="truncate_with_derived",
         domain=df.attrs.get("domain", ""),
-        usubjid=df[df.columns[0]].iloc[row_idx] if len(df.columns) > 0 else "",
+        usubjid=df[df.columns[2]].iloc[row_idx] if len(df.columns) > 0 else "",
         row_index=row_idx,
         variables_modified={
             date_field: {"original": original_date, "injected": injected_date}
