@@ -155,17 +155,11 @@ Core orchestration that ties everything together:
 
 ---
 
-### **Phase 7: CLI Integration** (ESTIMATED: 0.5 days)
-Add two subcommands to existing cli.py (~52 lines):
-- `install inject` — Run injection pipeline
-- `inject score` — Compare manifest vs validator output
+### **Phase 7: Script Entrypoint** (ESTIMATED: 0.5 days)
+Use `apply_primitive.py` as the orchestration entrypoint for injection runs.
 
 ```bash
-python -m sdtm_synth inject --input ./clean --output ./injected \
-  --mode compound --profile all --seed 42 --density-cap 5
-
-python -m sdtm_synth score --manifest ./injected/manifest.json \
-  --validator-output ./p21_results.csv
+python apply_primitive.py
 ```
 
 ---
@@ -289,18 +283,9 @@ print(f"Injected {manifest.total_mutations} errors")
 print(f"Manifest saved to {manifest_path}")
 ```
 
-Or via CLI:
+Or via script:
 ```bash
-python -m injection inject \
-  --input ./clean_data \
-  --output ./injected_data \
-  --profile all \
-  --seed 42 \
-  --density-cap 5
-
-python -m injection score \
-  --manifest ./injected_data/manifest.json \
-  --validator-output ./validator_findings.csv
+python apply_primitive.py
 ```
 
 ---
@@ -315,7 +300,7 @@ python -m injection score \
 **Short-term:**
 1. Implement Phase 5 (Engine) — most of the logic is in place
 2. Stub ConformanceLayer calls (or integrate with existing codebase)
-3. Phase 7 CLI integration (straightforward)
+3. Keep `apply_primitive.py` as the main run entrypoint
 
 **Testing:**
 1. Load EMPEROR-HFPEF test data
@@ -351,7 +336,7 @@ python -m injection score \
 | **Subtotal** | **2,210** | **170+** | **✅** |
 | 5 (Engine) | ~800 | 30+ | ⏳ Pending |
 | 6 (Writer) | 180 | 10+ | ⏳ Pending |
-| 7 (CLI) | 52 | 5+ | ⏳ Pending |
+| 7 (Entrypoint Script) | 52 | 5+ | ⏳ Pending |
 | 8 (E2E) | ~200 | 20+ | ⏳ Pending |
 | **Total** | **~3,440** | **~235** | **70% Complete** |
 

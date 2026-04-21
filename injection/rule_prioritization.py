@@ -71,6 +71,24 @@ def prioritize_rules(
     # This ensures: fewest rows first, and deterministic ordering on ties
     sorted_rules = sorted(rule_list, key=eligible_row_count)
 
+    # DEBUG: Print prioritization details
+    print("\n" + "=" * 80)
+    print("RULE PRIORITIZATION (sorted by eligible row count - ascending)")
+    print("=" * 80)
+    
+    for idx, rule in enumerate(sorted_rules, 1):
+        count, rule_id = eligible_row_count(rule)
+        domain = rule.domain if rule.domain != "--" else rule.domain_expanded[0] if rule.domain_expanded else "--"
+        primitive = rule.primitive
+        
+        if idx == 1:
+            print(f"\n🔴 MINIMUM ELIGIBLE ROWS: {rule.rule_id} ({count} rows)")
+            print("-" * 80)
+        
+        print(f"{idx:3d}. [{rule_id}] {count:4d} eligible rows | Domain: {domain:5s} | Primitive: {primitive}")
+    
+    print("=" * 80)
+
     return sorted_rules
 
 

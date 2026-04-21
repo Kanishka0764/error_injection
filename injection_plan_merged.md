@@ -30,7 +30,7 @@ config/injection/
 └── defaults.yaml             # profiles, category rates, density cap, skip list, prioritize_rules flag
 ```
 
-CLI: one `inject` + one `score` subcommand appended to `cli.py:411`. Zero changes to existing generator.
+Entrypoint script: run orchestration from `apply_primitive.py`.
 
 **Key design decisions:**
 1. **No cascade.py.** After injecting, the engine calls existing `ConformanceLayer` methods
@@ -1016,12 +1016,9 @@ Any failure = injection bug. Logged as WARNING in report.
 
 ---
 
-## Scoring Helper (`manifest.py` + CLI)
+## Scoring Helper (`manifest.py` + script)
 
-```bash
-python -m sdtm_synth score --manifest ./injected/manifest.json \
-  --validator-output ./p21_results/findings.csv
-```
+Use `manifest.score_validator(...)` directly after running `python apply_primitive.py`.
 
 ```python
 def score_validator(manifest_path: Path, validator_output_path: Path,
@@ -1173,36 +1170,18 @@ the cap limits its available subjects.
 
 ---
 
-## CLI (`cli.py` additions at line ~411)
+## Script Entrypoint (`apply_primitive.py`)
 
 ```python
-# Inject subcommand
-inject_parser = subparsers.add_parser('inject', help='Inject known errors for validator testing')
-inject_parser.add_argument('--input',   required=True)
-inject_parser.add_argument('--output',  required=True)
-inject_parser.add_argument('--mode', choices=['compound', 'isolated'], default='compound')
-inject_parser.add_argument('--profile', default='all')
-inject_parser.add_argument('--categories')
-inject_parser.add_argument('--rules')
-inject_parser.add_argument('--exclude-rules')
-inject_parser.add_argument('--domains')
-inject_parser.add_argument('--rate',          type=float, default=0.05)
-inject_parser.add_argument('--density-cap',   type=int,   default=5)
-inject_parser.add_argument('--no-prioritize', action='store_true',
-                            help='Disable rule prioritization (run in catalog order)')
-inject_parser.add_argument('--dry-run', action='store_true')
-inject_parser.add_argument('--seed',    type=int, default=42)
-inject_parser.add_argument('--verbose', action='store_true')
-inject_parser.set_defaults(func=inject_command)
+from injection.engine import InjectionEngine
 
-# Score subcommand
-score_parser = subparsers.add_parser('score', help='Score validator against manifest')
-score_parser.add_argument('--manifest', required=True)
-score_parser.add_argument('--validator-output', required=True)
-score_parser.add_argument('--rule-id-column', default='Rule ID')
-score_parser.add_argument('--domain-column', default='Domain')
-score_parser.add_argument('--usubjid-column', default='USUBJID')
-score_parser.set_defaults(func=score_command)
+engine = InjectionEngine()
+manifest = engine.run(
+  input_dir=r"D:\Care2data_intern\sdtm_synth_package(39)\output_tj301_p21",
+  output_dir=r"D:\Care2data_intern\op_for_errror_inj",
+  mode="compound",
+  profile="all",
+)
 ```
 
 ---
@@ -1275,7 +1254,7 @@ skip_by_default:
 | 7 | `rule_prioritization.py` | Count eligible rows per rule + sort ascending | Unit test: sorted order matches expected; edge cases (no domain, no guard, tie) all handled |
 | 8 | `writer.py` | clean/ + dirty/ + manifest.json + report.txt + priority order log | Round-trip preservation |
 | 9 | `engine.py` | Full orchestration + prioritize_rules() call + re-derivation + self-validation | e2e on EMPEROR-HFPEF output |
-| 10 | `cli.py` | `inject` + `score` subcommands + `--no-prioritize` flag | `--dry-run` e2e; `--mode isolated` |
+| 10 | `apply_primitive.py` | Run engine orchestration entrypoint | e2e compound and isolated runs |
 
 ---
 
@@ -1291,7 +1270,7 @@ skip_by_default:
 | `to_iso_date()` / `format_iso_date()` | `utils/dates.py` | primitives.py — format dates |
 | `derive_study_day()` | `utils/dates.py` | self-validation checks |
 | `DOMAIN_COLUMN_ORDER` | `schema/column_order.py` | writer.py — preserve column order |
-| `subparsers` | `cli.py:343` | add inject/score subcommands |
+| `apply_primitive.py` | main entrypoint | trigger full orchestration run |
 | Guard evaluation logic | `catalog.py` (existing) | rule_prioritization.py — reuse same guard evaluation to count eligible rows |
 
 ---
@@ -1324,4 +1303,4 @@ skip_by_default:
 - `config/injection/defaults.yaml`
 
 **Modified (1):**
-- `cli.py` — add `inject` + `score` subcommands + `--no-prioritize` flag (~52 lines at line 411)
+- `apply_primitive.py` — run full orchestration directly through `InjectionEngine`
