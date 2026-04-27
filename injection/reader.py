@@ -45,7 +45,7 @@ def load_datasets(input_dir: Path) -> Dict[str, pd.DataFrame]:
                 csv_file,
                 dtype=str,
                 keep_default_na=False,
-                na_values=[""],  # Only treat empty string as NaN for now
+                na_values=[],  # Don't convert anything to NaN - keep all values as strings
                 skipinitialspace=True,
             )
             # Strip whitespace from column names
@@ -71,7 +71,7 @@ def load_dataset(csv_path: Path) -> pd.DataFrame:
         csv_path,
         dtype=str,
         keep_default_na=False,
-        na_values=[""],
+        na_values=[],  # Don't convert anything to NaN - keep all values as strings
         skipinitialspace=True,
     )
     df.columns = df.columns.str.strip()

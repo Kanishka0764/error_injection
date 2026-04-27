@@ -173,6 +173,7 @@ def blank_field(
     field: str,
     rule_id: str,
 ) -> MutationRecord:
+    
     """
     Clear a required field (set to empty string).
 
@@ -185,8 +186,8 @@ def blank_field(
     Returns:
         MutationRecord documenting the change
     """
+    # print("blank_field is running")
     original = str(df[field].iloc[row_idx]) if field in df.columns else ""
-    
     if field in df.columns:
         df.loc[df.index[row_idx], field] = ""
 
@@ -224,6 +225,7 @@ def populate_forbidden(
         MutationRecord
     """
     original = str(df[field].iloc[row_idx]) if field in df.columns else ""
+    # print(f"   Original value for {field} at row {row_idx}: '{original}'")
 
     if field not in df.columns:
         df[field] = ""
@@ -355,31 +357,31 @@ def invert_date_order(
         MutationRecord
     """
     # DEBUG: Print what we're looking for
-    print(f"Looking for fields: start_field='{start_field}', end_field='{end_field}'")
-    print(f"Available columns in df: {list(df.columns)}")
-    print(f"start_field in df.columns: {start_field in df.columns}")
-    print(f"end_field in df.columns: {end_field in df.columns}")
+    # print(f"Looking for fields: start_field='{start_field}', end_field='{end_field}'")
+    # print(f"Available columns in df: {list(df.columns)}")
+    # print(f"start_field in df.columns: {start_field in df.columns}")
+    # print(f"end_field in df.columns: {end_field in df.columns}")
     original_start = str(df[start_field].iloc[row_idx]) if start_field in df.columns else ""
     original_end = str(df[end_field].iloc[row_idx]) if end_field in df.columns else ""
-    print(f"Original values: {start_field}='{original_start}', {end_field}='{original_end}'")
+    # print(f"Original values: {start_field}='{original_start}', {end_field}='{original_end}'")
 
     # Try to parse as dates
     end_date = _parse_iso_date(original_end)
-    print(f"Parsed {end_field} as date: {end_date}")
+    # print(f"Parsed {end_field} as date: {end_date}")
     if end_date:
         # Set start to end + random days (1-30)
         offset_days = int(rng.integers(1, 31))  # Convert numpy.int64 to Python int
-        print(f"Offset days to add: {offset_days}")
-        print(f"offset_days type: {type(offset_days)}, value: {offset_days}")
-        print(f"end_date type: {type(end_date)}, value: {end_date}")
+        # print(f"Offset days to add: {offset_days}")
+        # print(f"offset_days type: {type(offset_days)}, value: {offset_days}")
+        # print(f"end_date type: {type(end_date)}, value: {end_date}")
         try:
             new_start = end_date + timedelta(days=offset_days)
-            print("Successfully created new_start")
-            print(f"New start date : {new_start}")
+            # print("Successfully created new_start")
+            # print(f"New start date : {new_start}")
             injected_start = _format_iso_date(new_start)
-            print(f"inj: {injected_start}")
+            # print(f"inj: {injected_start}")
         except Exception as e:
-            print(f"ERROR in date calculation: {type(e).__name__}: {e}")
+            # print(f"ERROR in date calculation: {type(e).__name__}: {e}")
             import traceback
             traceback.print_exc()
             injected_start = original_start
