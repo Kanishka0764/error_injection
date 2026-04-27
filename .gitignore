@@ -139,3 +139,5 @@ Thumbs.db
 temp/
 tmp/
 *.tmp
+__pycache__
+*.zip

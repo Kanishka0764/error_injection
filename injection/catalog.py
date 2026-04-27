@@ -44,7 +44,7 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
         "primitive": "populate_forbidden",
         "params": {"field": "RFSTDTC", "value": "2024-01-01"},
         "domain": "DM",
-        "guard": "ARMCD in (SCRNFAIL,NOTASSGN,)",
+        "guard": "ARMCD in (SCRNFAIL,NOTASSGN,NOTTRT,)",
         "category": "dm_date",
     },
     "SD1342": {
@@ -70,9 +70,9 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
     },
     "SD2005": {
         "primitive": "populate_forbidden",
-        "params": {"field": "DTHFL", "value": "Y"},
+        "params": {"field": "DTHDTC", "value": "2024-01-01"},
         "domain": "DM",
-        "guard": "DTHDTC == ",
+        "guard": "DTHFL == Y",
         "category": "dm_date",
     },
     "SD1209": {

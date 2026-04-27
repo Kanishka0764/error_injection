@@ -8,8 +8,8 @@ from injection.engine import InjectionEngine
 from injection.config import Config
 
 
-INPUT_DIR = Path(r"C:\Users\Kanishka R B\Downloads\sdtm_synth_package(39) 1 (1)\output_tj301_p21")
-OUTPUT_DIR = Path(r"C:\Users\Kanishka R B\Downloads\error_inj_op")
+INPUT_DIR = Path(r"D:\Care2data_intern\sdtm_synth_package(39)\output_tj301_p21")
+OUTPUT_DIR = Path(r"D:\Care2data_intern\op_for_errror_inj")
 
 
 def main() -> None:
