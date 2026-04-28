@@ -360,14 +360,14 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
         "primitive": "mismatch_pair",
         "params": {"field_a": "ACTARMCD", "field_b": "ACTARM"},
         "domain": "DM",
-        "guard": "ACTARMCD == SCRNFAIL",
+        "guard": "ARMCD not in (SCRNFAIL, NOTASSGN)",
         "category": "age_arm",
     },
     "SD1362": {
         "primitive": "mismatch_pair",
         "params": {"field_a": "ACTARMCD", "field_b": "ACTARM"},
         "domain": "DM",
-        "guard": "ACTARMCD == NOTASSGN",
+        "guard": "ACTARMCD not in (SCRNFAIL, NOTASSGN, NOTTRT)",
         "category": "age_arm",
     },
     "SD2001": {
