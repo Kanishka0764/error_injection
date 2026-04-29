@@ -183,6 +183,16 @@ class InjectionEngine:
                     continue
 
                 row_candidates = self._eligible_rows(df, spec.guard_expression)
+                
+                # DEBUG: Show guard evaluation for guarded rules
+                if spec.guard_expression:
+                    guard_expr = spec.guard_expression.expression
+                    print(f"\n[GUARD DEBUG] Rule {spec.rule_id} - Guard: '{guard_expr}'")
+                    print(f"  Total rows in {domain}: {len(df)}")
+                    print(f"  Eligible rows after guard: {len(row_candidates)}")
+                    if len(row_candidates) == 0:
+                        print(f"  → SKIPPED: No eligible rows")
+                
                 if not row_candidates and self._is_row_level_primitive(spec.primitive):
                     continue
 
@@ -614,6 +624,7 @@ class InjectionEngine:
             ("start_field", "end_field"),
             ("date_field", "dy_field"),
             ("col_a", "col_b"),
+            ("field_a", "field_b"),  # FIX: Support mismatch_pair and similar primitives
         ]:
             if start_col_param in params:
                 col = str(params[start_col_param])

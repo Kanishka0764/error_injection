@@ -44,21 +44,21 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
         "primitive": "populate_forbidden",
         "params": {"field": "RFSTDTC", "value": "2024-01-01"},
         "domain": "DM",
-        "guard": "ARMCD in (SCRNFAIL,NOTASSGN,NOTTRT,)",
+        "guard": "ARMCD in (SCRNFAIL,NOTASSGN,)",
         "category": "dm_date",
     },
     "SD1342": {
         "primitive": "blank_field",
         "params": {"field": "RFXSTDTC"},
         "domain": "DM",
-        "guard": "ARMCD not in (SCRNFAIL,NOTASSGN,)",
+        "guard": "ARMCD not in (SCRNFAIL,NOTASSGN)",
         "category": "dm_date",
     },
     "SD1343": {
         "primitive": "blank_field",
         "params": {"field": "RFXENDTC"},
         "domain": "DM",
-        "guard": "ARMCD not in (SCRNFAIL,NOTASSGN,)",
+        "guard": "ARMCD not in (SCRNFAIL,NOTASSGN)",
         "category": "dm_date",
     },
     "SD2004": {
@@ -72,7 +72,7 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
         "primitive": "populate_forbidden",
         "params": {"field": "DTHDTC", "value": "2024-01-01"},
         "domain": "DM",
-        "guard": "DTHFL == Y",
+        "guard": "DTHDTC == ",
         "category": "dm_date",
     },
     "SD1209": {
@@ -128,7 +128,7 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
         "primitive": "blank_field",
         "params": {"field": "AGE"},
         "domain": "DM",
-        "guard": "AGEU != ",
+        "guard": "AGEU != \"\"",
         "category": "dm_date",
     },
     "SD1121": {
@@ -141,14 +141,14 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
         "primitive": "populate_forbidden",
         "params": {"field": "RFSTDTC", "value": "2024-01-01"},
         "domain": "DM",
-        "guard": "ARMCD in (SCRNFAIL,NOTASSGN,)",
+        "guard": "ARMCD in (SCRNFAIL,NOTASSGN)",
         "category": "dm_date",
     },
     "SD1375": {
         "primitive": "populate_forbidden",
         "params": {"field": "RFENDTC", "value": "2024-01-01"},
         "domain": "DM",
-        "guard": "ARMCD in (SCRNFAIL,NOTASSGN,)",
+        "guard": "ARMCD in (SCRNFAIL,NOTASSGN)",
         "category": "dm_date",
     },
     "SD2021": {
@@ -360,7 +360,7 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
         "primitive": "mismatch_pair",
         "params": {"field_a": "ACTARMCD", "field_b": "ACTARM"},
         "domain": "DM",
-        "guard": "ARMCD not in (SCRNFAIL, NOTASSGN)",
+        "guard": "ACTARMCD == SCRNFAIL",
         "category": "age_arm",
     },
     "SD1362": {

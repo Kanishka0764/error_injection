@@ -312,7 +312,6 @@ def mismatch_pair(
 
     # Set field_b to a mismatched value
     mismatched = original_a + "_MISMATCH" if original_a else "INVALID"
-
     if field_b not in df.columns:
         df[field_b] = ""
 
