@@ -1706,13 +1706,16 @@ RULE_PRIMITIVE_MAP: Dict[str, dict] = {
     },
 
     # ========== findings_chain_1 (1 rule) ==========
+    # catalog.py - remove guard entirely
     "SD1117": {
-        "primitive": "blank_field",
-        "params": {"field": "--ORRES"},
-        "domain": "--",
-        "guard": "--STAT != NOT DONE",
-        "category": "findings_chain_1",
+    "primitive": "duplicate_record",
+    "params": {
+        "key_fields": ["USUBJID", "--TESTCD"]
     },
+    "domain": "--",
+    "guard": None,        # ← remove guard, let duplicate_record handle filtering
+    "category": "findings_chain_1",
+},
 
     # ========== findings_chain_2 (6 rules) ==========
     "SD1131": {

@@ -373,11 +373,8 @@ class InjectionEngine:
         eligible = []
         for idx in range(len(df)):
             try:
-                result = guard_expression.evaluate(df, idx)
-                if result:
+                if guard_expression.evaluate(df, idx):
                     eligible.append(idx)
-                # DEBUG: Show guard evaluation results
-                # print(f"  Guard: {guard_expression.expression} at row {idx}: {result}")
             except Exception:
                 eligible.append(idx)
         return eligible

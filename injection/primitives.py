@@ -584,7 +584,7 @@ def duplicate_record(
     rule_id: str,
     filter_field: Optional[str] = None,
     filter_value: Optional[str] = None,
-) -> MutationRecord:
+) -> Optional[MutationRecord]:
     """
     Duplicate a row to create key violation.
 
@@ -597,8 +597,21 @@ def duplicate_record(
         filter_value: Optional value to filter by
 
     Returns:
-        MutationRecord
+        MutationRecord documenting the duplication, or None if domain is ineligible
     """
+    domain = df.attrs.get("domain", "")
+    #print(f"duplicate_record called → domain={domain}, columns={list(df.columns[:5])}") 
+
+    # ✅ NEW: Check if key_fields actually exist in this domain
+    # e.g. "--TESTCD" → "LBTESTCD" for LB, "AETESTCD" for AE
+    for field in key_fields:
+        if field == "USUBJID":
+            continue  # USUBJID exists in all domains, skip check
+        resolved = field.replace("--", domain, 1) if field.startswith("--") else field
+        if resolved not in df.columns and field not in df.columns:
+            #print(f"  → {field} resolved to {resolved} → NOT FOUND → return None")
+            return None  # domain doesn't have this field → skip
+        #print(f"  → all fields found → duplicating row {row_idx}")
     # Find a row that matches filter (if provided)
     if filter_field and filter_field in df.columns:
         matching = df[df[filter_field] == filter_value]
@@ -607,8 +620,7 @@ def duplicate_record(
 
     # Duplicate the row
     row = df.iloc[row_idx].copy()
-    new_row_idx = len(df)
-    df.loc[new_row_idx] = row
+    df.loc[len(df)] = row
 
     return MutationRecord(
         error_id="",
@@ -616,10 +628,13 @@ def duplicate_record(
         rule_message=f"Duplicate record with key {key_fields}",
         category="",
         primitive="duplicate_record",
-        domain=df.attrs.get("domain", ""),
+        domain=domain,
         usubjid=row.get("USUBJID", "") if "USUBJID" in row else "",
         row_index=row_idx,
-        variables_modified={str(k): {"original": "UNIQUE", "injected": "DUPLICATE"} for k in key_fields},
+        variables_modified={
+            str(k): {"original": "UNIQUE", "injected": "DUPLICATE"}
+            for k in key_fields
+        },
     )
 
 
