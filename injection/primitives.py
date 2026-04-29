@@ -785,6 +785,7 @@ def cross_domain_mismatch(
     Returns:
         MutationRecord
     """
+    print(f"Running cross_domain_mismatch with source {source_domain}.{source_field} and target {target_domain}.{target_field}")    
     if rng is None:
         rng = np.random.default_rng()
 

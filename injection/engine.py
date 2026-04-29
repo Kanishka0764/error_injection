@@ -164,6 +164,9 @@ class InjectionEngine:
         # Maps (usubjid, column) -> rule_id to prevent duplicate column injections
         injected_columns: Dict[Tuple[str, str], str] = {}
 
+        print(f"\n[COMPOUND DEBUG] Starting with {len(active_rules)} active rules")
+        print(f"[COMPOUND DEBUG] rate={rate}, density_cap={density_cap}, seed={seed}\n")
+
         for spec in active_rules:
             target_domains = self._resolve_target_domains(spec, datasets)
             if not target_domains:
@@ -183,7 +186,10 @@ class InjectionEngine:
                     continue
 
                 row_candidates = self._eligible_rows(df, spec.guard_expression)
+                # print(f"[{spec.rule_id}] eligible_rows={len(row_candidates)}/{len(df)}, primitive={spec.primitive}, is_row_level={self._is_row_level_primitive(spec.primitive)}")
+                
                 if not row_candidates and self._is_row_level_primitive(spec.primitive):
+                    # print(f"[{spec.rule_id}]   SKIPPED: no eligible rows")
                     continue
 
                 selected_rows = self._select_rows(
@@ -195,8 +201,10 @@ class InjectionEngine:
                     rng=rng,
                     primitive_name=spec.primitive,
                 )
-
+                # print(f"[{spec.rule_id}]   selected_rows={len(selected_rows)}, density_state={dict(list(subject_density.items())[:3]) if subject_density else {}}")
+                
                 if self._is_row_level_primitive(spec.primitive) and not selected_rows:
+                    # print(f"[{spec.rule_id}]   SKIPPED: no selected rows")
                     continue
 
                 if not self._is_row_level_primitive(spec.primitive):
@@ -225,12 +233,14 @@ class InjectionEngine:
                     
                     if conflicts:
                         # Skip this injection - column(s) already injected for this subject
+                        print(f"[{spec.rule_id}]     REJECTED: column conflict - {conflicts}")
                         manifest.add_skipped_rule(
                             spec.rule_id,
                             f"Column conflict for {usubjid}: {conflicts} already injected"
                         )
                         continue
                     
+                    # print(f"[{spec.rule_id}]     CALLING _apply_rule_once for row {call_rows}, usubjid={usubjid}, columns={columns_to_inject}")
                     records = self._apply_rule_once(
                         datasets=datasets,
                         domain=domain,
@@ -238,6 +248,7 @@ class InjectionEngine:
                         spec=spec,
                         rng=rng,
                     )
+                    # print(f"[{spec.rule_id}]     _apply_rule_once returned {len(records) if records else 0} records")
                     if not records:
                         continue
 
@@ -388,14 +399,18 @@ class InjectionEngine:
 
         n_target = max(1, int(round(len(row_candidates) * rate)))
         n_target = min(n_target, int(self.config.defaults.get("max_errors_per_rule", 50)), len(row_candidates))
+        # print(f"  Selecting rows for primitive '{primitive_name}': {len(row_candidates)} candidates, targeting {n_target} rows with rate {rate} and density cap {density_cap}")
 
         shuffled = list(row_candidates)
         rng.shuffle(shuffled)
         selected: List[int] = []
+        
+        # print(f"[DEBUG _select_rows] n_target={n_target}, density_cap={density_cap}, subject_density={subject_density}")
 
         for row_idx in shuffled:
             sid = self._get_subject_id(df, row_idx)
-            if sid and density_cap > 0 and subject_density.get(sid, 0) >= density_cap:
+            density_check = subject_density.get(sid, 0) >= density_cap
+            if density_check:
                 continue
             selected.append(row_idx)
             if sid:
@@ -403,6 +418,7 @@ class InjectionEngine:
             if len(selected) >= n_target:
                 break
 
+        # print(f"  FINAL selected list: {selected}")
         return selected
 
     def _apply_rule_once(
@@ -414,6 +430,7 @@ class InjectionEngine:
         rng: np.random.Generator,
     ) -> List[MutationRecord]:
         if not hasattr(primitives, spec.primitive):
+            print(f"  [ERROR] Primitive '{spec.primitive}' not found in primitives module")
             return []
 
         func = getattr(primitives, spec.primitive)
@@ -430,13 +447,19 @@ class InjectionEngine:
                 rng=rng,
             )
             result = func(**kwargs)
-        except Exception:
+            print(f"    [_apply_rule_once] {spec.rule_id}/{spec.primitive}: result type={type(result).__name__}, result={result if not isinstance(result, list) or len(result) < 3 else f'list[{len(result)}]'}")
+        except Exception as e:
+            print(f"    [_apply_rule_once] {spec.rule_id}: EXCEPTION {type(e).__name__}: {e}")
             return []
 
         if isinstance(result, list):
-            return [r for r in result if isinstance(r, MutationRecord)]
+            filtered = [r for r in result if isinstance(r, MutationRecord)]
+            print(f"    [_apply_rule_once] {spec.rule_id}: list had {len(result)} items, {len(filtered)} are MutationRecord")
+            return filtered
         if isinstance(result, MutationRecord):
+            print(f"    [_apply_rule_once] {spec.rule_id}: single MutationRecord returned")
             return [result]
+        print(f"    [_apply_rule_once] {spec.rule_id}: returning empty (result was {type(result).__name__})")
         return []
 
     @staticmethod
@@ -456,10 +479,15 @@ class InjectionEngine:
         normalized = dict(params)
 
         if primitive_name == "cross_domain_mismatch":
+            # Ensure source_domain is set - default to current domain if not provided
+            if "source_domain" not in normalized:
+                normalized["source_domain"] = domain
             if "source" in normalized and "source_domain" not in normalized:
                 normalized["source_domain"] = normalized.pop("source")
             if "target" in normalized and "target_domain" not in normalized:
                 normalized["target_domain"] = normalized.pop("target")
+            # Map row_idx to source_row_idx for cross_domain_mismatch signature
+            normalized["source_row_idx"] = row_idx
 
         if primitive_name == "cross_domain_orphan":
             if "source" in normalized and "source_domain" not in normalized:
